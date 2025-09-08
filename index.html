@@ -99,8 +99,8 @@
     <div class="container">
         <div class="logo">=</div>
         <h1>TreasureLink</h1>
-        <p class="subtitle">앱을 열 수 없습니다.<br>앱이 설치되어 있는지 확인하세요.</p>
-
+        <p class="subtitle">앱을 여는 중입니다<br>잠시만 기다려주세요</p>
+        
         <a href="#" id="openApp" class="button">앱 열기</a>
 
         <div class="store-buttons" id="storeButtons">
@@ -142,41 +142,54 @@
             function tryOpenApp() {
                 const os = getMobileOS();
                 const startTime = Date.now();
+                let appOpened = false;
                 
                 // 로딩 텍스트 표시
+                document.getElementById('loadingText').textContent = '앱을 여는 중입니다...';
                 document.getElementById('loadingText').style.display = 'block';
                 document.getElementById('storeButtons').style.display = 'none';
                 
+                // 페이지가 백그라운드로 가면 앱이 열린 것으로 판단
+                const handleVisibilityChange = function() {
+                    if (document.hidden) {
+                        appOpened = true;
+                    }
+                };
+                document.addEventListener('visibilitychange', handleVisibilityChange);
+                
+                // 앱 열기 시도
                 window.location.href = appScheme;
                 
-                // 2s
+                // 10초 후 앱이 열리지 않았다면 자동으로 스토어로 이동
                 setTimeout(function() {
-                    const elapsedTime = Date.now() - startTime;
-                    if (elapsedTime < 2500) {
-                        document.getElementById('loadingText').style.display = 'none';
+                    document.removeEventListener('visibilitychange', handleVisibilityChange);
+                    
+                    if (!appOpened && !document.hidden) {
+                        // 앱이 설치되지 않은 경우
+                        document.getElementById('loadingText').textContent = '앱 스토어로 이동합니다...';
                         
-                        if (os === 'ios') {
-                            window.location.href = appStoreUrl;
-                        } else if (os === 'android') {
-                            window.location.href = playStoreUrl;
-                        } else {
-                            // 다른 플랫폼에서는 스토어 버튼을 표시
-                            document.getElementById('storeButtons').style.display = 'block';
-                        }
+                        // OS에 따라 자동으로 스토어로 이동
+                        setTimeout(function() {
+                            if (os === 'ios') {
+                                window.location.href = appStoreUrl;
+                            } else if (os === 'android') {
+                                window.location.href = playStoreUrl;
+                            }
+                        }, 1000);
                     }
-                }, 2000);
+                }, 10000);
             }
 
             // 앱 열기 시도
             window.addEventListener('load', function() {
                 const os = getMobileOS();
 
-                // iOS 14+ 지원
                 if (os === 'ios' || os === 'android') {
-                    setTimeout(tryOpenApp, 100);
+                    // 바로 앱 열기 시도
+                    setTimeout(tryOpenApp, 500);
                 } else {
-                    // 다른 플랫폼에서는 스토어 버튼을 표시
-                    document.getElementById('loadingText').style.display = 'none';
+                    // 데스크톱에서는 스토어 버튼 표시
+                    document.getElementById('loadingText').textContent = '모바일 기기에서 접속해주세요';
                     document.getElementById('storeButtons').style.display = 'block';
                 }
             });
@@ -187,28 +200,6 @@
                 tryOpenApp();
             });
             
-            // Visibility change event
-            let hidden, visibilityChange;
-            if (typeof document.hidden !== "undefined") {
-                hidden = "hidden";
-                visibilityChange = "visibilitychange";
-            } else if (typeof document.msHidden !== "undefined") {
-                hidden = "msHidden";
-                visibilityChange = "msvisibilitychange";
-            } else if (typeof document.webkitHidden !== "undefined") {
-                hidden = "webkitHidden";
-                visibilityChange = "webkitvisibilitychange";
-            }
-            
-            if (typeof document.addEventListener !== "undefined" && 
-                typeof document[hidden] !== "undefined") {
-                document.addEventListener(visibilityChange, function() {
-                    if (document[hidden]) {
-                        // 페이지가 숨겨지면 (앱이 열리면) 로딩 텍스트 숨기기
-                        document.getElementById('loadingText').textContent = '앱을 여는 중...';
-                    }
-                }, false);
-            }
         })();
     </script>
 </body>
