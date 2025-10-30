@@ -129,7 +129,7 @@
             // ⚠️ 주의: 이 URL은 Public 레포지토리에 노출되어도 안전합니다.
             // (Edge Function은 Public Endpoint이며, 실제 보안은 서버에서 처리됩니다)
             // ========================================
-            const SUPABASE_URL = 'https://bktiqjyusedlauprtqrt.supabase.co';
+            const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co'; // TODO: 실제 URL로 변경
 
             // Custom URL scheme
             const appScheme = 'treasurelink://treasurelink.com/';
@@ -157,9 +157,21 @@
             function trackClick(os) {
                 const params = getURLParams();
 
+                console.log('🔍 trackClick 호출됨');
+                console.log('   - OS:', os);
+                console.log('   - URL 파라미터:', params);
+                console.log('   - Supabase URL:', SUPABASE_URL);
+
                 // 캠페인 정보가 있을 때만 추적
                 if (params.source || params.campaign) {
-                    console.log('📊 Attribution 클릭 추적:', params);
+                    console.log('📊 Attribution 클릭 추적 시작...');
+
+                    // SUPABASE_URL 검증
+                    if (SUPABASE_URL.includes('YOUR_PROJECT')) {
+                        console.error('❌ SUPABASE_URL이 설정되지 않았습니다!');
+                        console.error('132번 gogo');
+                        return;
+                    }
 
                     fetch(`${SUPABASE_URL}/functions/v1/track-click`, {
                         method: 'POST',
@@ -171,7 +183,10 @@
                             platform: os
                         })
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        console.log('📡 서버 응답 받음:', response.status);
+                        return response.json();
+                    })
                     .then(data => {
                         console.log('✅ Attribution 추적 성공:', data);
                     })
@@ -179,6 +194,8 @@
                         console.error('❌ Attribution 추적 실패:', error);
                         // 실패해도 계속 진행
                     });
+                } else {
+                    console.log('ℹ️ UTM 파라미터 없음 - 추적 스킵 (Organic 방문)');
                 }
             }
 
@@ -223,10 +240,7 @@
 
                     if (!appOpened && !document.hidden) {
                         // 앱이 설치되지 않은 경우
-                        console.log('📱 앱 미설치 감지 - Attribution 추적 시작');
-
-                        // Attribution 클릭 추적 (앱 미설치 시만)
-                        trackClick(os);
+                        console.log('📱 앱 미설치 감지 - 스토어로 이동');
 
                         document.getElementById('loadingText').textContent = '앱 스토어로 이동합니다...';
 
@@ -238,6 +252,8 @@
                                 window.location.href = playStoreUrl;
                             }
                         }, 1000);
+                    } else if (appOpened) {
+                        console.log('✅ 앱이 정상적으로 열림');
                     }
                 }, 2000);
             }
@@ -245,6 +261,13 @@
             // 앱 열기 시도
             window.addEventListener('load', function() {
                 const os = getMobileOS();
+
+                console.log('📱 페이지 로드 완료');
+                console.log('   - OS:', os);
+                console.log('   - 현재 URL:', window.location.href);
+
+                // 🎯 페이지 로드 시 즉시 Attribution 추적 (앱 설치 여부 무관)
+                trackClick(os);
 
                 if (os === 'ios' || os === 'android') {
                     // 바로 앱 열기 시도
