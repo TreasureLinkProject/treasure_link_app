@@ -117,14 +117,71 @@
 
     <script>
         (function() {
+            // ========================================
+            // 🔧 설정: Supabase URL
+            // ========================================
+            // 1. Supabase Dashboard → Settings → API
+            // 2. "Project URL" 복사
+            // 3. 아래 URL을 실제 Supabase URL로 변경하세요
+            //
+            // 예: 'https://abcdefghijklmnop.supabase.co'
+            //
+            // ⚠️ 주의: 이 URL은 Public 레포지토리에 노출되어도 안전합니다.
+            // (Edge Function은 Public Endpoint이며, 실제 보안은 서버에서 처리됩니다)
+            // ========================================
+            const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co'; // TODO: 실제 URL로 변경
+
             // Custom URL scheme
             const appScheme = 'treasurelink://treasurelink.com/';
-            
+
             // App Store & Play Store URLs
             const appStoreUrl = 'https://apps.apple.com/app/treasurelink/id6746151115';
             const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.wb.treasure_link.app';
-            
-            
+
+            // URL 파라미터 파싱
+            function getURLParams() {
+                const params = new URLSearchParams(window.location.search);
+                return {
+                    source: params.get('utm_source') || params.get('source'),
+                    campaign: params.get('utm_campaign') || params.get('campaign'),
+                    medium: params.get('utm_medium') || params.get('medium'),
+                    ad_id: params.get('ad_id'),
+                    adset_id: params.get('adset_id'),
+                    click_id: params.get('fbclid') || params.get('gclid') || params.get('click_id'),
+                    term: params.get('utm_term') || params.get('term'),
+                    referrer_url: window.location.href
+                };
+            }
+
+            // Attribution 클릭 추적
+            function trackClick(os) {
+                const params = getURLParams();
+
+                // 캠페인 정보가 있을 때만 추적
+                if (params.source || params.campaign) {
+                    console.log('📊 Attribution 클릭 추적:', params);
+
+                    fetch(`${SUPABASE_URL}/functions/v1/track-click`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            ...params,
+                            platform: os
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('✅ Attribution 추적 성공:', data);
+                    })
+                    .catch(error => {
+                        console.error('❌ Attribution 추적 실패:', error);
+                        // 실패해도 계속 진행
+                    });
+                }
+            }
+
             function getMobileOS() {
                 const userAgent = navigator.userAgent || navigator.vendor || window.opera;
                 
@@ -160,14 +217,19 @@
                 // 앱 열기 시도
                 window.location.href = appScheme;
                 
-                // 10초 후 앱이 열리지 않았다면 자동으로 스토어로 이동
+                // 2초 후 앱이 열리지 않았다면 자동으로 스토어로 이동
                 setTimeout(function() {
                     document.removeEventListener('visibilitychange', handleVisibilityChange);
-                    
+
                     if (!appOpened && !document.hidden) {
                         // 앱이 설치되지 않은 경우
+                        console.log('📱 앱 미설치 감지 - Attribution 추적 시작');
+
+                        // Attribution 클릭 추적 (앱 미설치 시만)
+                        trackClick(os);
+
                         document.getElementById('loadingText').textContent = '앱 스토어로 이동합니다...';
-                        
+
                         // OS에 따라 자동으로 스토어로 이동
                         setTimeout(function() {
                             if (os === 'ios') {
@@ -177,7 +239,7 @@
                             }
                         }, 1000);
                     }
-                }, 10000);
+                }, 2000);
             }
 
             // 앱 열기 시도
