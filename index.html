@@ -162,41 +162,47 @@
                 console.log('   - URL 파라미터:', params);
                 console.log('   - Supabase URL:', SUPABASE_URL);
 
-                // 캠페인 정보가 있을 때만 추적
-                if (params.source || params.campaign) {
-                    console.log('📊 Attribution 클릭 추적 시작...');
-
-                    // SUPABASE_URL 검증
-                    if (SUPABASE_URL.includes('YOUR_PROJECT')) {
-                        console.error('❌ SUPABASE_URL이 설정되지 않았습니다!');
-                        console.error('132번 gogo');
-                        return;
-                    }
-
-                    fetch(`${SUPABASE_URL}/functions/v1/track-click`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            ...params,
-                            platform: os
-                        })
-                    })
-                    .then(response => {
-                        console.log('📡 서버 응답 받음:', response.status);
-                        return response.json();
-                    })
-                    .then(data => {
-                        console.log('✅ Attribution 추적 성공:', data);
-                    })
-                    .catch(error => {
-                        console.error('❌ Attribution 추적 실패:', error);
-                        // 실패해도 계속 진행
-                    });
-                } else {
-                    console.log('ℹ️ UTM 파라미터 없음 - 추적 스킵 (Organic 방문)');
+                // SUPABASE_URL 검증
+                if (SUPABASE_URL.includes('YOUR_PROJECT')) {
+                    console.error('❌ SUPABASE_URL이 설정되지 않았습니다!');
+                    console.error('132번 줄을 실제 Supabase URL로 변경하세요.');
+                    return;
                 }
+
+                // UTM 파라미터가 없으면 organic으로 설정
+                const trackingParams = {
+                    source: params.source || 'organic',
+                    campaign: params.campaign || null,
+                    medium: params.medium || null,
+                    ad_id: params.ad_id || null,
+                    adset_id: params.adset_id || null,
+                    click_id: params.click_id || null,
+                    term: params.term || null,
+                    referrer_url: params.referrer_url,
+                    platform: os
+                };
+
+                console.log('📊 Attribution 클릭 추적 시작...');
+                console.log('   - 추적 데이터:', trackingParams);
+
+                fetch(`${SUPABASE_URL}/functions/v1/track-click`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(trackingParams)
+                })
+                .then(response => {
+                    console.log('📡 서버 응답 받음:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('✅ Attribution 추적 성공:', data);
+                })
+                .catch(error => {
+                    console.error('❌ Attribution 추적 실패:', error);
+                    // 실패해도 계속 진행
+                });
             }
 
             function getMobileOS() {
