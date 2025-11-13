@@ -122,9 +122,9 @@
             // Custom URL scheme
             const appScheme = 'treasurelink://treasurelink.com/';
 
-            // App Store & Play Store URLs
-            const appStoreUrl = 'https://apps.apple.com/app/treasurelink/id6746151115';
-            const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.wb.treasure_link';
+            // App Store & Play Store URLs (기본값)
+            const baseAppStoreUrl = 'https://apps.apple.com/app/treasurelink/id6746151115';
+            const basePlayStoreUrl = 'https://play.google.com/store/apps/details?id=com.wb.treasure_link';
 
             // URL 파라미터 파싱
             function getURLParams() {
@@ -156,9 +156,9 @@
                     return;
                 }
 
-                // UTM 파라미터가 없으면 organic으로 설정
+                // UTM 파라미터가 없으면 shared_link으로 설정
                 const trackingParams = {
-                    source: params.source || 'organic',
+                    source: params.source || 'shared_link',
                     campaign: params.campaign || null,
                     medium: params.medium || null,
                     ad_id: params.ad_id || null,
@@ -199,7 +199,31 @@
                 
                 return 'other';
             }
-            
+
+            // UTM 파라미터를 포함한 스토어 URL 생성
+            function buildStoreUrl(os) {
+                const params = getURLParams();
+
+                if (os === 'ios') {
+                    return baseAppStoreUrl;
+                } else if (os === 'android') {
+                    // Play Store referrer 파라미터 생성
+                    const referrerParams = [];
+                    if (params.source) referrerParams.push(`utm_source=${encodeURIComponent(params.source)}`);
+                    if (params.campaign) referrerParams.push(`utm_campaign=${encodeURIComponent(params.campaign)}`);
+                    if (params.medium) referrerParams.push(`utm_medium=${encodeURIComponent(params.medium)}`);
+                    if (params.term) referrerParams.push(`utm_term=${encodeURIComponent(params.term)}`);
+                    if (params.click_id) referrerParams.push(`click_id=${encodeURIComponent(params.click_id)}`);
+
+                    if (referrerParams.length > 0) {
+                        const referrerString = referrerParams.join('&');
+                        return `${basePlayStoreUrl}&referrer=${encodeURIComponent(referrerString)}`;
+                    }
+                    return basePlayStoreUrl;
+                }
+                return null;
+            }
+
             function tryOpenApp() {
                 const os = getMobileOS();
                 const startTime = Date.now();
@@ -231,10 +255,9 @@
 
                         // OS에 따라 자동으로 스토어로 이동
                         setTimeout(function() {
-                            if (os === 'ios') {
-                                window.location.href = appStoreUrl;
-                            } else if (os === 'android') {
-                                window.location.href = playStoreUrl;
+                            const storeUrl = buildStoreUrl(os);
+                            if (storeUrl) {
+                                window.location.href = storeUrl;
                             }
                         }, 1000);
                     } else if (appOpened) {
