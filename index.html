@@ -117,8 +117,6 @@
 
     <script>
         (function() {
-            const SUPABASE_URL = 'https://bktiqjyusedlauprtqrt.supabase.co';
-
             // Custom URL scheme
             const appScheme = 'treasurelink://treasurelink.com/';
 
@@ -139,51 +137,6 @@
                     term: params.get('utm_term') || params.get('term'),
                     referrer_url: window.location.href
                 };
-            }
-
-            // Attribution 클릭 추적
-            function trackClick(os) {
-                const params = getURLParams();
-
-                console.log('🔍 trackClick 호출됨');
-                console.log('   - OS:', os);
-                console.log('   - URL 파라미터:', params);
-                console.log('   - Supabase URL:', SUPABASE_URL);
-
-                // SUPABASE_URL 검증
-                if (SUPABASE_URL.includes('YOUR_PROJECT')) {
-                    console.error('❌ SUPABASE_URL이 설정되지 않았습니다!');
-                    return;
-                }
-
-                // UTM 파라미터가 없으면 shared_link으로 설정
-                const trackingParams = {
-                    source: params.source || 'shared_link',
-                    campaign: params.campaign || null,
-                    medium: params.medium || null,
-                    ad_id: params.ad_id || null,
-                    adset_id: params.adset_id || null,
-                    click_id: params.click_id || null,
-                    term: params.term || null,
-                    referrer_url: params.referrer_url,
-                    platform: os
-                };
-
-                fetch(`${SUPABASE_URL}/functions/v1/track-click`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(trackingParams)
-                })
-                .then(response => {
-                    return response.json();
-                })
-                .then(data => {
-                })
-                .catch(error => {
-                    // 실패해도 계속 진행
-                });
             }
 
             function getMobileOS() {
